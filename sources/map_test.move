@@ -4,8 +4,9 @@ module msafe::simple_map_test {
     use aptos_std::simple_map::{Self, SimpleMap};
     use std::vector;
     use std::bcs;
+    use std::signer;
 
-    const MAX_TRANSACTION_SIZE:u64 = 64*1024;
+    const MAX_TRANSACTION_SIZE: u64 = 64 * 1024;
 
     struct TestStore has key {
         value: vector<u8>,
@@ -13,10 +14,12 @@ module msafe::simple_map_test {
     }
 
     fun init_module(s: &signer) {
-        move_to(s, TestStore {
-            value: build_bytes(MAX_TRANSACTION_SIZE),
-            datas: simple_map::create()
-        });
+        if (!exists<TestStore>(signer::address_of(s))) {
+            move_to(s, TestStore {
+                value: build_bytes(MAX_TRANSACTION_SIZE),
+                datas: simple_map::create()
+            })
+        }
     }
 
     fun build_bytes(size: u64): vector<u8> {
@@ -47,11 +50,11 @@ module msafe::simple_map_test {
         }
     }
 
-    public entry fun borrow(seq: u64):u64 acquires TestStore {
+    public entry fun borrow(seq: u64) acquires TestStore {
         let store = borrow_global<TestStore>(@msafe);
         let key = to_bytes32(seq);
         let value = simple_map::borrow(&store.datas, &key);
-        vector::length(value)
+        vector::length(value);
     }
 
     #[test(s = @msafe)]
@@ -59,6 +62,6 @@ module msafe::simple_map_test {
         let fill_size = 128;
         init_module(s);
         add(fill_size);
-        borrow(fill_size-1);
+        borrow(fill_size - 1);
     }
 }
